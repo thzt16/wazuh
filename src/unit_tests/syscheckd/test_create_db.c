@@ -32,7 +32,7 @@
 
 #include "../syscheckd/syscheck.h"
 #include "../config/syscheck-config.h"
-#include "../syscheckd/fim_db.h"
+#include "../syscheckd/db/fim_db.h"
 
 extern fim_state_db _db_state;
 
@@ -229,17 +229,6 @@ static int teardown_delete_json(void **state) {
     cJSON_Delete(fim_data->json);
     return 0;
 }
-typedef struct __fim_data_s {
-    fim_element *item;
-    whodata_evt *w_evt;
-    fim_entry *fentry;
-    fim_inode_data *inode_data;
-    fim_file_data *new_data;
-    fim_file_data *old_data;
-    fim_file_data *local_data; // Used on certain tests, not affected by group setup/teardown
-    struct dirent *entry;       // Used on fim_directory tests, not affected by group setup/teardown
-    cJSON *json;
-}fim_data_t;
 
 static int setup_fim_entry(void **state) {
     fim_data_t *fim_data = *state;
@@ -2404,8 +2393,8 @@ static void test_fim_checker_deleted_file_enoent(void **state) {
 
     str_lowercase(expanded_path);
 
-    fim_data->fentry->path = strdup("file");
-    fim_data->fentry->data = fim_data->local_data;
+    //fim_data->fentry->path = strdup("file");
+    //fim_data->fentry->data = fim_data->local_data;
 
     fim_data->local_data->size = 1500;
     fim_data->local_data->perm = strdup("0664");
