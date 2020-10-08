@@ -685,6 +685,16 @@ int wdb_parse(char * input, char * output) {
                 result = wdb_parse_global_get_agent_info(wdb, next, output);
             }
         } 
+        else if (strcmp(query, "update-TCP") == 0) {
+            if (!next) {
+                mdebug1("Global DB Invalid DB query syntax for update-TCP.");
+                mdebug2("Global DB query error near: %s", query);
+                snprintf(output, OS_MAXSTR + 1, "err Invalid DB query syntax, near '%.32s'", query);
+                result = OS_INVALID;
+            } else {
+                result = wdb_parse_global_update_TCP(wdb, next, output);
+            }
+        }
         else {
             mdebug1("Invalid DB query syntax.");
             mdebug2("Global DB query error near: %s", query);
@@ -5142,6 +5152,42 @@ int wdb_parse_global_get_all_agents(wdb_t* wdb, char* input, char* output) {
     snprintf(output, OS_MAXSTR + 1, "%s %s",  WDBC_RESULT[status], out);
     
     os_free(out)
+
+    return OS_SUCCESS;
+}
+
+int wdb_parse_global_update_TCP(wdb_t * wdb, char * input, char * output) {
+    cJSON *agent_TCP = NULL;
+    const char *error = NULL;
+    cJSON *agent = NULL;
+    cJSON *j_id_agent = NULL;
+    cJSON *j_sock_agent = NULL;
+
+    agent_TCP = cJSON_ParseWithOpts(input, &error, TRUE);
+    if (!agent_TCP) {
+        mdebug1("Global DB Invalid JSON syntax when updating TCP.");
+        mdebug2("Global DB JSON error near: %s", error);
+        snprintf(output, OS_MAXSTR + 1, "err Invalid JSON syntax, near '%.32s'", input);
+        return OS_INVALID;
+    } else {
+
+        cJSON_ArrayForEach(agent, agent_TCP) {
+            j_id_agent = cJSON_GetObjectItem(agent, "id");
+            j_sock_agent = cJSON_GetObjectItem(agent, "sock");
+            int agent_id = j_id_agent->valueint;
+            int agent_sock = j_sock_agent->valueint;
+
+            if (OS_SUCCESS != wdb_global_update_TCP(wdb, agent_id, agent_sock)) {
+                mdebug1("Global DB Cannot execute SQL query; err database %s/%s.db: %s", WDB2_DIR, WDB_GLOB_NAME, sqlite3_errmsg(wdb->db));
+                snprintf(output, OS_MAXSTR + 1, "err Cannot execute Global database query; %s", sqlite3_errmsg(wdb->db));
+                cJSON_Delete(agent_TCP);
+                return OS_INVALID;
+            }
+        } 
+    }
+
+    snprintf(output, OS_MAXSTR , "ok");
+    cJSON_Delete(agent_TCP);
 
     return OS_SUCCESS;
 }

@@ -1383,3 +1383,41 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
 
     return status;
 }
+
+int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock){
+     sqlite3_stmt *stmt = NULL;
+
+    int valid_sock = agent_sock != -1 ? 1 : -1;
+
+    if (!wdb->transaction && wdb_begin2(wdb) < 0) {
+        mdebug1("Cannot begin transaction");
+        return OS_INVALID;
+    }
+
+    if (wdb_stmt_cache(wdb, WDB_STMT_GLOBAL_UPDATE_TCP) < 0) {
+        mdebug1("Cannot cache statement");
+        return OS_INVALID;
+    }
+
+    stmt = wdb->stmt[WDB_STMT_GLOBAL_UPDATE_TCP];
+
+    if (sqlite3_bind_int(stmt, 1, valid_sock) != SQLITE_OK) {
+        merror("DB(%s) sqlite3_bind_int(): %s", wdb->id, sqlite3_errmsg(wdb->db));
+        return OS_INVALID;
+    }
+
+    if (sqlite3_bind_int(stmt, 2, agent_id) != SQLITE_OK) {
+        merror("DB(%s) sqlite3_bind_int(): %s", wdb->id, sqlite3_errmsg(wdb->db));
+        return OS_INVALID;
+    }
+
+    switch (wdb_step(stmt)) {
+    case SQLITE_ROW:
+    case SQLITE_DONE:
+        return OS_SUCCESS;
+        break;
+    default:
+        mdebug1("SQLite: %s", sqlite3_errmsg(wdb->db));
+        return OS_INVALID;
+    }
+}

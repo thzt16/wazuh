@@ -50,7 +50,8 @@ static const char *global_db_commands[] = {
     [WDB_DELETE_AGENT] = "global delete-agent %d",
     [WDB_DELETE_GROUP] = "global delete-group %s",
     [WDB_DELETE_AGENT_BELONG] = "global delete-agent-belong %d",
-    [WDB_DELETE_GROUP_BELONG] = "global delete-group-belong %s"
+    [WDB_DELETE_GROUP_BELONG] = "global delete-group-belong %s",
+    [WDB_UPDATE_TCP] = "global update-TCP %s"
 };
 
 int wdb_insert_agent(int id, const char *name, const char *ip, const char *register_ip, const char *internal_key, const char *group, int keep_date) {
@@ -1304,3 +1305,34 @@ time_t get_agent_date_added(int agent_id) {
     fclose(fp);
     return 0;
 }
+
+int wdb_update_TCP_connections(cJSON *active_TCP_agents) {
+    int result = 0;
+    char wdbquery[OS_MAXSTR] = "";
+    char wdboutput[OS_BUFFER_SIZE] = "";
+    char *payload = NULL;
+
+    snprintf(wdbquery, sizeof(wdbquery), global_db_commands[WDB_UPDATE_TCP], cJSON_PrintUnformatted(active_TCP_agents));
+
+    result = wdbc_query_ex(&wdb_sock_agent, wdbquery, wdboutput, sizeof(wdboutput));
+
+    switch (result){
+        case OS_SUCCESS:
+            if (WDBC_OK != wdbc_parse_result(wdboutput, &payload)) {
+                mdebug1("Global DB Error reported in the result of the query");
+                result = OS_INVALID;
+            }
+            break;
+        case OS_INVALID:
+            mdebug1("Global DB Error in the response from socket");
+            mdebug2("Global DB SQL query: %s", wdbquery);
+            break;
+        default:
+            mdebug1("Global DB Cannot execute SQL query; err database %s/%s.db", WDB2_DIR, WDB_GLOB_NAME);
+            mdebug2("Global DB SQL query: %s", wdbquery);
+            result = OS_INVALID;
+    }
+
+    return result;
+}
+

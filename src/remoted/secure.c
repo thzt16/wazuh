@@ -11,6 +11,8 @@
 #include "shared.h"
 #include "os_net/os_net.h"
 #include "remoted.h"
+#include "wazuh_db/wdb.h"
+#include "external/cJSON/cJSON.h"
 
 /* Global variables */
 int sender_pool;
@@ -382,7 +384,10 @@ static void HandleSecureMessage(char *buffer, int recv_b, struct sockaddr_in *pe
 
     /* Check if it is a control message */
     if (IsValidHeader(tmp_msg)) {
-
+        cJSON *agents_TCP = NULL;
+        cJSON *agent = NULL;
+        cJSON *j_id = NULL;
+        cJSON *j_sock = NULL;
         /* We need to save the peerinfo if it is a control msg */
 
         memcpy(&keys.keyentries[agentid]->peer_info, peer_info, logr.peer_size);
@@ -398,7 +403,20 @@ static void HandleSecureMessage(char *buffer, int recv_b, struct sockaddr_in *pe
             mdebug2("TCP socket %d already in keystore. Updating...", sock_client);
             break;
         default:
-            ;
+            agents_TCP = cJSON_CreateArray();
+            unsigned int i = 0;
+            for (i = 0; i < keys.keysize; i++) {
+                agent = cJSON_CreateObject();
+                j_id = cJSON_CreateNumber(atoi(keys.keyentries[i]->id));
+                j_sock = cJSON_CreateNumber(keys.keyentries[i]->sock);
+                cJSON_AddItemToObject(agent, "id", j_id);
+                cJSON_AddItemToObject(agent, "sock", j_sock);
+                cJSON_AddItemToArray(agents_TCP, agent);
+            }
+            if(wdb_update_TCP_connections(agents_TCP) != OS_SUCCESS ) {
+                mwarn("Unable to update TCP connections.");
+            }
+            cJSON_Delete(agents_TCP);
         }
 
         key_unlock();
@@ -445,6 +463,27 @@ int _close_sock(keystore * keys, int sock) {
 
     key_lock_read();
     retval = OS_DeleteSocket(keys, sock);
+   
+    cJSON * agents_TCP = NULL;
+    cJSON * agent = NULL;
+    cJSON * j_id = NULL;
+    cJSON * j_sock = NULL;
+
+    agents_TCP = cJSON_CreateArray();
+    unsigned int i = 0;
+    for (i = 0; i < keys->keysize; i++) {
+        agent = cJSON_CreateObject();
+        j_id = cJSON_CreateNumber(atoi(keys->keyentries[i]->id));
+        j_sock = cJSON_CreateNumber(keys->keyentries[i]->sock);
+        cJSON_AddItemToObject(agent, "id", j_id);
+        cJSON_AddItemToObject(agent, "sock", j_sock);
+        cJSON_AddItemToArray(agents_TCP, agent);
+    }
+    if(wdb_update_TCP_connections(agents_TCP) != OS_SUCCESS ) {
+        mwarn("Unable to update TCP connections.");
+    }
+    cJSON_Delete(agents_TCP);
+   
     key_unlock();
 
     if (nb_close(&netbuffer, sock) == 0) {

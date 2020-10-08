@@ -159,6 +159,7 @@ typedef enum wdb_stmt {
     WDB_STMT_GLOBAL_GET_AGENTS,
     WDB_STMT_GLOBAL_GET_AGENTS_BY_GREATER_KEEPALIVE,
     WDB_STMT_GLOBAL_GET_AGENTS_BY_LESS_KEEPALIVE,
+    WDB_STMT_GLOBAL_UPDATE_TCP,
     WDB_STMT_SIZE,
     WDB_STMT_PRAGMA_JOURNAL_WAL,
 } wdb_stmt;
@@ -191,7 +192,8 @@ typedef enum global_db_access {
     WDB_DELETE_AGENT,
     WDB_DELETE_GROUP,
     WDB_DELETE_AGENT_BELONG,
-    WDB_DELETE_GROUP_BELONG
+    WDB_DELETE_GROUP_BELONG,
+    WDB_UPDATE_TCP
 } global_db_access;
 
 typedef struct wdb_t {
@@ -1668,6 +1670,10 @@ wdbc_result wdb_global_get_agents_by_keepalive(wdb_t *wdb, int* last_agent_id, c
  * @return wdbc_result to represent if all agents has being obtained or any error occurred.
  */
 wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **output);
+
+int wdb_update_TCP_connections(cJSON *active_TCP_agents);
+int wdb_parse_global_update_TCP(wdb_t * wdb, char * input, char * output);
+int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock);
 
 // Finalize a statement securely
 #define wdb_finalize(x) { if (x) { sqlite3_finalize(x); x = NULL; } }
