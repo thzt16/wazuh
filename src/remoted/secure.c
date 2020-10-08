@@ -395,6 +395,21 @@ static void HandleSecureMessage(char *buffer, int recv_b, struct sockaddr_in *pe
         r = (protocol == IPPROTO_TCP) ? OS_AddSocket(&keys, agentid, sock_client) : 2;
         keys.keyentries[agentid]->rcvd = time(0);
 
+        agents_TCP = cJSON_CreateArray();
+        unsigned int i = 0;
+        for (i = 0; i < keys.keysize; i++) {
+            agent = cJSON_CreateObject();
+            j_id = cJSON_CreateNumber(atoi(keys.keyentries[i]->id));
+            j_sock = cJSON_CreateNumber(keys.keyentries[i]->sock);
+            cJSON_AddItemToObject(agent, "id", j_id);
+            cJSON_AddItemToObject(agent, "sock", j_sock);
+            cJSON_AddItemToArray(agents_TCP, agent);
+        }
+        if(wdb_update_TCP_connections(agents_TCP) != OS_SUCCESS ) {
+            mwarn("Unable to update TCP connections.");
+        }
+        cJSON_Delete(agents_TCP);
+
         switch (r) {
         case 0:
             merror("Couldn't add TCP socket to keystore.");
@@ -403,20 +418,7 @@ static void HandleSecureMessage(char *buffer, int recv_b, struct sockaddr_in *pe
             mdebug2("TCP socket %d already in keystore. Updating...", sock_client);
             break;
         default:
-            agents_TCP = cJSON_CreateArray();
-            unsigned int i = 0;
-            for (i = 0; i < keys.keysize; i++) {
-                agent = cJSON_CreateObject();
-                j_id = cJSON_CreateNumber(atoi(keys.keyentries[i]->id));
-                j_sock = cJSON_CreateNumber(keys.keyentries[i]->sock);
-                cJSON_AddItemToObject(agent, "id", j_id);
-                cJSON_AddItemToObject(agent, "sock", j_sock);
-                cJSON_AddItemToArray(agents_TCP, agent);
-            }
-            if(wdb_update_TCP_connections(agents_TCP) != OS_SUCCESS ) {
-                mwarn("Unable to update TCP connections.");
-            }
-            cJSON_Delete(agents_TCP);
+                ;   
         }
 
         key_unlock();
