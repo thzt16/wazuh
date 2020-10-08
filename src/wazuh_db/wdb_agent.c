@@ -51,7 +51,8 @@ static const char *global_db_commands[] = {
     [WDB_DELETE_GROUP] = "global delete-group %s",
     [WDB_DELETE_AGENT_BELONG] = "global delete-agent-belong %d",
     [WDB_DELETE_GROUP_BELONG] = "global delete-group-belong %s",
-    [WDB_UPDATE_TCP] = "global update-TCP %s"
+    [WDB_UPDATE_TCP] = "global update-TCP %s",
+    [WDB_GET_TCP] = "global get-TCP"
 };
 
 int wdb_insert_agent(int id, const char *name, const char *ip, const char *register_ip, const char *internal_key, const char *group, int keep_date) {
@@ -1336,3 +1337,18 @@ int wdb_update_TCP_connections(cJSON *active_TCP_agents) {
     return result;
 }
 
+cJSON* wdb_get_TCP() {
+    cJSON *root = NULL;
+    char wdbquery[WDBQUERY_SIZE] = "";
+    char wdboutput[WDBOUTPUT_SIZE] = "";
+
+    sqlite3_snprintf(sizeof(wdbquery), wdbquery, global_db_commands[WDB_GET_TCP]);
+    root = wdbc_query_parse_json(&wdb_sock_agent, wdbquery, wdboutput, sizeof(wdboutput));
+
+    if (!root) {
+        merror("Error querying Wazuh DB to get the agent's TCP info.");
+        return NULL;
+    }
+
+    return root;
+}

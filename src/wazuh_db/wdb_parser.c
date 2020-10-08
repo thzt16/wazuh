@@ -695,6 +695,9 @@ int wdb_parse(char * input, char * output) {
                 result = wdb_parse_global_update_TCP(wdb, next, output);
             }
         }
+        else if (strcmp(query, "get-TCP") == 0) {
+                result = wdb_parse_global_get_TCP(wdb, next, output);
+        }
         else {
             mdebug1("Invalid DB query syntax.");
             mdebug2("Global DB query error near: %s", query);
@@ -5188,6 +5191,40 @@ int wdb_parse_global_update_TCP(wdb_t * wdb, char * input, char * output) {
 
     snprintf(output, OS_MAXSTR , "ok");
     cJSON_Delete(agent_TCP);
+
+    return OS_SUCCESS;
+}
+
+int wdb_parse_global_get_TCP(wdb_t * wdb, char * next, char *output) {
+    char *out = NULL;
+
+    cJSON * agents_TCP = NULL;
+    cJSON * agent = NULL;
+    cJSON * j_id = NULL;
+    cJSON * j_sock = NULL;
+    OSHashNode * hash_node = NULL;
+    unsigned int index = 0;
+
+    agents_TCP = cJSON_CreateArray();
+    unsigned int i = 0;
+
+    hash_node = OSHash_Begin(agent_status_hash, &index);
+
+    while(hash_node) {
+        agent = cJSON_CreateObject();
+        j_id = cJSON_CreateNumber(atoi(hash_node->key));
+        int * data = hash_node->data;
+        j_sock = cJSON_CreateNumber(*data);
+        cJSON_AddItemToObject(agent, "id", j_id);
+        cJSON_AddItemToObject(agent, "sock", j_sock);
+        cJSON_AddItemToArray(agents_TCP, agent);
+        hash_node = OSHash_Next(agent_status_hash, &index, hash_node);
+    }
+
+    out = cJSON_PrintUnformatted(agents_TCP);
+    snprintf(output, OS_MAXSTR + 1, "ok %s", out);
+    os_free(out);
+    cJSON_Delete(agents_TCP);
 
     return OS_SUCCESS;
 }

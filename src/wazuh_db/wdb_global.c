@@ -1385,39 +1385,28 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
 }
 
 int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock){
-     sqlite3_stmt *stmt = NULL;
-
+    char str_agent_id[OS_BUFFER_SIZE];
+    snprintf(str_agent_id, OS_BUFFER_SIZE, "%d", agent_id);
     int valid_sock = agent_sock != -1 ? 1 : -1;
-
-    if (!wdb->transaction && wdb_begin2(wdb) < 0) {
-        mdebug1("Cannot begin transaction");
-        return OS_INVALID;
-    }
-
-    if (wdb_stmt_cache(wdb, WDB_STMT_GLOBAL_UPDATE_TCP) < 0) {
-        mdebug1("Cannot cache statement");
-        return OS_INVALID;
-    }
-
-    stmt = wdb->stmt[WDB_STMT_GLOBAL_UPDATE_TCP];
-
-    if (sqlite3_bind_int(stmt, 1, valid_sock) != SQLITE_OK) {
-        merror("DB(%s) sqlite3_bind_int(): %s", wdb->id, sqlite3_errmsg(wdb->db));
-        return OS_INVALID;
-    }
-
-    if (sqlite3_bind_int(stmt, 2, agent_id) != SQLITE_OK) {
-        merror("DB(%s) sqlite3_bind_int(): %s", wdb->id, sqlite3_errmsg(wdb->db));
-        return OS_INVALID;
-    }
-
-    switch (wdb_step(stmt)) {
-    case SQLITE_ROW:
-    case SQLITE_DONE:
-        return OS_SUCCESS;
-        break;
-    default:
-        mdebug1("SQLite: %s", sqlite3_errmsg(wdb->db));
-        return OS_INVALID;
+    switch(OSHash_Add(agent_status_hash, str_agent_id, &valid_sock)){
+        case 0:
+            merror("TCP Hash error");
+            return OS_INVALID;
+        case 1:
+            mwarn("TCP Hash duplicated");
+            if(OSHash_Set(agent_status_hash, str_agent_id, &valid_sock)==0){
+                merror("TCP Hash failed updating");
+                return OS_INVALID;
+            }
+            else{
+                mwarn("TCP Hash updated");
+            }
+            return OS_SUCCESS;
+        case 2:
+            mwarn("TCP Hash Success");
+            return OS_SUCCESS;
+        default:
+            merror("TCP Hash failed somehow");
+            return OS_INVALID;
     }
 }

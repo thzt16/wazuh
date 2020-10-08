@@ -100,6 +100,9 @@ int main(int argc, char ** argv) {
     open_dbs = OSHash_Create();
     if (!open_dbs) merror_exit("wazuh_db: OSHash_Create() failed");
 
+    agent_status_hash = OSHash_Create();
+    if (!agent_status_hash) merror_exit("wazuh_db: OSHash_Create() failed");
+
     mdebug1(STARTED_MSG);
 
     if (!run_foreground) {
@@ -214,6 +217,7 @@ int main(int argc, char ** argv) {
     wdb_close_all();
 
     OSHash_Free(open_dbs);
+    OSHash_Free(agent_status_hash);
 
     // Reset template here too, remove queue/db/.template.db again
     // Without the prefix, because chrooted at that point

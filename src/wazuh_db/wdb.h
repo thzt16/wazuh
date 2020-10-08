@@ -193,7 +193,8 @@ typedef enum global_db_access {
     WDB_DELETE_GROUP,
     WDB_DELETE_AGENT_BELONG,
     WDB_DELETE_GROUP_BELONG,
-    WDB_UPDATE_TCP
+    WDB_UPDATE_TCP,
+    WDB_GET_TCP
 } global_db_access;
 
 typedef struct wdb_t {
@@ -236,6 +237,7 @@ extern pthread_mutex_t pool_mutex;
 extern wdb_t * db_pool;
 extern int db_pool_size;
 extern OSHash * open_dbs;
+extern OSHash * agent_status_hash;
 
 typedef struct os_data {
     char *os_name;
@@ -1674,6 +1676,8 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
 int wdb_update_TCP_connections(cJSON *active_TCP_agents);
 int wdb_parse_global_update_TCP(wdb_t * wdb, char * input, char * output);
 int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock);
+cJSON* wdb_get_TCP();
+int wdb_parse_global_get_TCP(wdb_t * wdb, char * next, char *output);
 
 // Finalize a statement securely
 #define wdb_finalize(x) { if (x) { sqlite3_finalize(x); x = NULL; } }

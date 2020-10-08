@@ -154,6 +154,7 @@ wdb_t * db_pool_begin;
 wdb_t * db_pool_last;
 int db_pool_size;
 OSHash * open_dbs;
+OSHash * agent_status_hash;
 
 // Opens global database and stores it in DB pool. It returns a locked database or NULL
 wdb_t * wdb_open_global() {
