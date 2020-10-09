@@ -378,6 +378,12 @@ int wdb_global_update_agent_keepalive(wdb_t *wdb, int id, const char* sync_statu
 
 int wdb_global_delete_agent(wdb_t *wdb, int id) {
     sqlite3_stmt *stmt = NULL;
+    char str_id[OS_BUFFER_SIZE];
+
+    snprintf(str_id, OS_BUFFER_SIZE, "%d", id);
+    if (!OSHash_Delete(agent_status_hash, str_id)) {
+        merror("Unable to delere TCP Hash ID: %s", str_id);
+    }
 
     if (!wdb->transaction && wdb_begin2(wdb) < 0) {
         mdebug1("Cannot begin transaction");
@@ -1387,7 +1393,7 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
 int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock){
     char str_agent_id[OS_BUFFER_SIZE];
     snprintf(str_agent_id, OS_BUFFER_SIZE, "%d", agent_id);
-    int *valid_sock = agent_sock != -1 ? (void *)1 : (void *)0;
+    void *valid_sock = agent_sock != -1 ? (void *)1 : (void *)0;
 
     w_mutex_lock(&agent_status_mutex);
 

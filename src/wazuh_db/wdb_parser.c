@@ -5213,8 +5213,7 @@ int wdb_parse_global_get_TCP(wdb_t * wdb, char * next, char *output) {
     while(hash_node) {
         agent = cJSON_CreateObject();
         j_id = cJSON_CreateNumber(atoi(hash_node->key));
-        int * data =(int *) hash_node->data;
-        j_sock = cJSON_CreateNumber(*data);
+        j_sock = cJSON_CreateNumber(hash_node->data ? 1 : 0);
         cJSON_AddItemToObject(agent, "id", j_id);
         cJSON_AddItemToObject(agent, "sock", j_sock);
         cJSON_AddItemToArray(agents_TCP, agent);
