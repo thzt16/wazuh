@@ -1387,18 +1387,18 @@ wdbc_result wdb_global_get_all_agents(wdb_t *wdb, int* last_agent_id, char **out
 int wdb_global_update_TCP(wdb_t * wdb, int agent_id, int agent_sock){
     char str_agent_id[OS_BUFFER_SIZE];
     snprintf(str_agent_id, OS_BUFFER_SIZE, "%d", agent_id);
-    int valid_sock = agent_sock != -1 ? 1 : -1;
+    int *valid_sock = agent_sock != -1 ? (void *)1 : (void *)0;
 
     w_mutex_lock(&agent_status_mutex);
 
-    switch(OSHash_Add(agent_status_hash, str_agent_id, &valid_sock)){
+    switch(OSHash_Add(agent_status_hash, str_agent_id, valid_sock)){
         case 0:
             merror("TCP Hash error");
             w_mutex_unlock(&agent_status_mutex);
             return OS_INVALID;
         case 1:
             mwarn("TCP Hash duplicated");
-            if(OSHash_Set(agent_status_hash, str_agent_id, &valid_sock)==0){
+            if(OSHash_Set(agent_status_hash, str_agent_id, valid_sock)==0){
                 merror("TCP Hash failed updating");
                 w_mutex_unlock(&agent_status_mutex);
                 return OS_INVALID;
