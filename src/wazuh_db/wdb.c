@@ -150,6 +150,7 @@ static const char *SQL_STMT[] = {
 
 wdb_config wconfig;
 pthread_mutex_t pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t agent_status_mutex = PTHREAD_MUTEX_INITIALIZER;
 wdb_t * db_pool_begin;
 wdb_t * db_pool_last;
 int db_pool_size;

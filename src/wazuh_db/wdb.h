@@ -234,6 +234,7 @@ extern int wdb_sock_agent;
 
 extern wdb_config wconfig;
 extern pthread_mutex_t pool_mutex;
+extern pthread_mutex_t agent_status_mutex;
 extern wdb_t * db_pool;
 extern int db_pool_size;
 extern OSHash * open_dbs;

@@ -5207,7 +5207,7 @@ int wdb_parse_global_get_TCP(wdb_t * wdb, char * next, char *output) {
 
     agents_TCP = cJSON_CreateArray();
     unsigned int i = 0;
-
+    w_mutex_lock(&agent_status_mutex);
     hash_node = OSHash_Begin(agent_status_hash, &index);
 
     while(hash_node) {
@@ -5220,6 +5220,7 @@ int wdb_parse_global_get_TCP(wdb_t * wdb, char * next, char *output) {
         cJSON_AddItemToArray(agents_TCP, agent);
         hash_node = OSHash_Next(agent_status_hash, &index, hash_node);
     }
+    w_mutex_unlock(&agent_status_mutex);
 
     out = cJSON_PrintUnformatted(agents_TCP);
     snprintf(output, OS_MAXSTR + 1, "ok %s", out);
