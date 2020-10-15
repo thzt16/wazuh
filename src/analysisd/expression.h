@@ -22,7 +22,8 @@ typedef enum {
     EXP_TYPE_OSMATCH,
     EXP_TYPE_STRING,
     EXP_TYPE_OSIP_ARRAY,
-    EXP_TYPE_PCRE2
+    EXP_TYPE_PCRE2,
+    EXP_TYPE_INVALID
 } w_exp_type_t;
 
 
@@ -40,6 +41,7 @@ typedef struct {
         OSMatch * match;
         char * string;
         os_ip ** ips;
+        pcre2_code * pcre2;
     };
 
     bool negate;            ///< Determine if the expression is afirmative or negative

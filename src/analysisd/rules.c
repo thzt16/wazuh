@@ -41,6 +41,11 @@ static void printRuleinfo(const RuleInfo *rule, int node);
  */
 bool w_check_attr_negate(xml_node *node, int rule_id);
 
+/**
+ * @brief Check if a option (regex or field) has attribute type
+ */
+w_exp_type_t w_check_attr_type(xml_node *node, int rule_id);
+
 
 /* Will initialize the rules list */
 void Rules_OP_CreateRules()
@@ -404,6 +409,8 @@ int Rules_OP_ReadRules(const char *rulefile)
                 bool negate_srcgeoip = false;
                 bool negate_dstgeoip = false;
 
+                w_exp_type_t regex_type;
+
                 regex = NULL;
                 match = NULL;
                 url = NULL;
@@ -444,6 +451,7 @@ int Rules_OP_ReadRules(const char *rulefile)
 
                         regex =loadmemory(regex, rule_opt[k]->content);
                         negate_regex = w_check_attr_negate(rule_opt[k], config_ruleinfo->sigid);
+                        regex_type = w_check_attr_type(rule_opt[k], config_ruleinfo->sigid);
 
                     } else if (strcasecmp(rule_opt[k]->element, xml_match) == 0) {
 
@@ -722,7 +730,9 @@ int Rules_OP_ReadRules(const char *rulefile)
                                     strcasecmp(rule_opt[k]->values[0], xml_extra_data) &&
                                     strcasecmp(rule_opt[k]->values[0], xml_status) &&
                                     strcasecmp(rule_opt[k]->values[0], xml_system_name))
-                                    config_ruleinfo->fields[ifield]->name = loadmemory(config_ruleinfo->fields[ifield]->name, rule_opt[k]->values[0]);
+
+                                    config_ruleinfo->fields[ifield]->name =
+                                        loadmemory(config_ruleinfo->fields[ifield]->name, rule_opt[k]->values[0]);
                                 else {
                                     merror("Field '%s' is static.", rule_opt[k]->values[0]);
                                     goto cleanup;
@@ -737,14 +747,17 @@ int Rules_OP_ReadRules(const char *rulefile)
                             goto cleanup;
                         }
 
-                        os_calloc(1, sizeof(OSRegex), config_ruleinfo->fields[ifield]->regex);
+                        w_exp_type_t type = w_check_attr_type(rule_opt[k], config_ruleinfo->sigid);
+                        bool negate = w_check_attr_negate(rule_opt[k], config_ruleinfo->sigid);
+
+                        w_calloc_expression_t(config_ruleinfo->fields[ifield], type);
+                        config_ruleinfo->fields[ifield]->regex->negate = negate;
 
                         if (!OSRegex_Compile(rule_opt[k]->content, config_ruleinfo->fields[ifield]->regex, 0)) {
-                            merror(REGEX_COMPILE, rule_opt[k]->content, config_ruleinfo->fields[ifield]->regex->error);
+                            merror(REGEX_COMPILE, rule_opt[k]->content,
+                                   config_ruleinfo->fields[ifield]->regex->regex->error);
                             goto cleanup;
                         }
-
-                        config_ruleinfo->fields[ifield]->negate = w_check_attr_negate(rule_opt[k], config_ruleinfo->sigid);
 
                         ifield++;
 
@@ -1535,7 +1548,7 @@ int Rules_OP_ReadRules(const char *rulefile)
 
                 /* Check the regexes */
                 if (regex) {
-                    w_calloc_expression_t(&config_ruleinfo->regex, EXP_TYPE_OSREGEX);
+                    w_calloc_expression_t(&config_ruleinfo->regex, regex_type);
                     config_ruleinfo->regex->negate = negate_regex;
 
                     if (!OSRegex_Compile(regex, config_ruleinfo->regex->regex, 0)) {
@@ -2485,7 +2498,7 @@ static int doesRuleExist(int sid, RuleNode *r_node)
 
 bool w_check_attr_negate(xml_node *node, int rule_id) {
 
-    const char *xml_negate = "negate";
+    const char * xml_negate = "negate";
 
     if (!node->attributes) {
         return false;
@@ -2503,10 +2516,37 @@ bool w_check_attr_negate(xml_node *node, int rule_id) {
             else {
                 mwarn(ANALYSISD_INV_VALUE_RULE, node->values[i],
                       node->attributes[i], rule_id);
-                return false;
             }
         }
     }
 
     return false;
+}
+
+w_exp_type_t w_check_attr_type(xml_node *node, int rule_id) {
+
+    const char * xml_type = "type";
+
+    if (!node->attributes) {
+        return EXP_TYPE_INVALID;
+    }
+
+    for (int i = 0; node->attributes[i]; i++) {
+        if(strcasecmp(node->attributes[i], xml_type) == 0) {
+
+            if(strcasecmp(node->values[i], "osregex") == 0) {
+                return EXP_TYPE_OSREGEX;
+
+            } else if(strcasecmp(node->values[i], "pcre2") == 0) {
+                return EXP_TYPE_PCRE2;
+
+            } else {
+                mwarn(ANALYSISD_INV_VALUE_RULE, node->values[i],
+                      node->attributes[i], rule_id);
+            }
+
+        }
+    }
+
+    return EXP_TYPE_OSREGEX;
 }
