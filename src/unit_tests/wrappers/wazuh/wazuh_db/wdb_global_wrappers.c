@@ -277,3 +277,7 @@ cJSON* __wrap_wdb_global_get_agent_info(__attribute__((unused)) wdb_t *wdb,
     check_expected(id);
     return mock_ptr_type(cJSON*);
 }
+
+int __wrap_wdb_global_reset_agents_connection( __attribute__((unused)) wdb_t *wdb) {
+    return mock();
+}
