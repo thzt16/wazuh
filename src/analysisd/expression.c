@@ -30,6 +30,27 @@ void w_calloc_expression_t(w_expression_t ** var, w_exp_type_t type) {
     }
 }
 
+void w_free_expression_t(w_expression_t ** var) {
+
+    if (var == NULL || *var == NULL) {
+        return;
+    }
+
+    switch ((*var)->exp_type) {
+
+        case EXP_TYPE_OSMATCH:
+            os_free((*var)->match);
+            break;
+
+        case EXP_TYPE_OSREGEX:
+            os_free((*var)->regex);
+            break;
+
+        default:
+            break;
+    }
+    os_free(*var);
+}
 
 bool w_expression_add_osip(w_expression_t ** var, char * ip) {
 
@@ -61,4 +82,31 @@ bool w_expression_add_osip(w_expression_t ** var, char * ip) {
     }
 
     return true;
+}
+
+bool w_expression_compile(w_expression_t * expression, char * pattern, int flags) {
+
+    bool retval = false;
+
+    switch (expression->exp_type) {
+
+        case EXP_TYPE_OSREGEX:
+            if (!OSRegex_Compile(pattern, expression->regex, flags)) {
+                merror(REGEX_COMPILE, pattern, expression->regex->error);
+                retval = true;
+            }
+            break;
+
+        case EXP_TYPE_OSMATCH:
+            if (!OSMatch_Compile(pattern, expression->match, flags)) {
+                merror(REGEX_COMPILE, pattern, expression->match->error);
+                retval = true;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return retval;
 }
