@@ -24,12 +24,51 @@ void w_calloc_expression_t(w_expression_t ** var, w_exp_type_t type) {
         case EXP_TYPE_OSREGEX:
             os_calloc(1, sizeof(OSRegex), (*var)->regex);
             break;
-        
+
         default:
             break;
     }
 }
 
+void w_free_expression_t(w_expression_t ** var) {
+
+    if (var == NULL || *var == NULL) {
+        return;
+    }
+
+    switch ((*var)->exp_type) {
+
+        case EXP_TYPE_OSMATCH:
+            OSMatch_FreePattern((*var)->match);
+            os_free((*var)->match);
+            break;
+
+        case EXP_TYPE_OSREGEX:
+            OSRegex_FreePattern((*var)->regex);
+            os_free((*var)->regex);
+            break;
+
+        case EXP_TYPE_STRING:
+            os_free((*var)->string);
+            break;
+
+        case EXP_TYPE_OSIP_ARRAY:
+
+            if((*var)->ips == NULL) {
+                break;
+            }
+
+            for (int i = 0; (*var)->ips[i]; i++) {
+                w_free_os_ip((*var)->ips[i]);
+            }
+            os_free((*var)->ips);
+            break;
+
+        default:
+            break;
+    }
+    os_free(*var);
+}
 
 bool w_expression_add_osip(w_expression_t ** var, char * ip) {
 
@@ -48,17 +87,36 @@ bool w_expression_add_osip(w_expression_t ** var, char * ip) {
     (*var)->ips[ip_s + 1] = NULL;
 
     if (!OS_IsValidIP(ip, (*var)->ips[ip_s])) {
-
-        for (int i = 0; (*var)->ips[i]; i++) {
-            os_free((*var)->ips[i]->ip);
-            os_free((*var)->ips[i]);
-        }
-
-        os_free((*var)->ips);
-        os_free(*var);
-
+        w_free_expression_t(var);
         return false;
     }
 
     return true;
+}
+
+bool w_expression_compile(w_expression_t * expression, char * pattern, int flags) {
+
+    bool retval = true;
+
+    switch (expression->exp_type) {
+
+        case EXP_TYPE_OSREGEX:
+            if (!OSRegex_Compile(pattern, expression->regex, flags)) {
+                merror(REGEX_COMPILE, pattern, expression->regex->error);
+                retval = false;
+            }
+            break;
+
+        case EXP_TYPE_OSMATCH:
+            if (!OSMatch_Compile(pattern, expression->match, flags)) {
+                merror(REGEX_COMPILE, pattern, expression->match->error);
+                retval = false;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return retval;
 }
