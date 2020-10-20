@@ -541,9 +541,8 @@ async def post_new_agent(request, agent_name, pretty=False, wait_for_complete=Fa
                           rbac_permissions=request['token_info']['rbac_policies']
                           )
     data = raise_if_exc(await dapi.distribute_function())
-    response = Data(data)
 
-    return web.json_response(data=response, status=200, dumps=prettify if pretty else dumps)
+    return web.json_response(data=data, status=200, dumps=prettify if pretty else dumps)
 
 
 async def delete_multiple_agent_single_group(request, group_id, agents_list=None, pretty=False,
